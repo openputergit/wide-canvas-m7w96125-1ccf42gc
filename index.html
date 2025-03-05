@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop Hisab - Cute Accounting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #fce4ec;
+        }
+        .hello-kitty-card {
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid #ff69b4;
+        }
+        .loader {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #ff69b4;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-pink-600">
+                <i class="bi bi-shop"></i> दुकान का हिसाब
+            </h1>
+            <input type="text" id="shopName" placeholder="दुकान का नाम" class="mt-2 p-2 border rounded-lg focus:border-pink-400 focus:outline-none text-center">
+        </div>
+
+        <!-- Main Content -->
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Entry Form -->
+            <div class="hello-kitty-card p-6">
+                <h2 class="text-xl font-bold text-pink-600 mb-4">
+                    <i class="bi bi-cart-plus"></i> नई एंट्री
+                </h2>
+                <form id="entryForm" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700">सेवा का प्रकार</label>
+                        <select id="serviceType" class="w-full p-2 border rounded-lg focus:border-pink-400 focus:outline-none" required>
+                            <option value="Cash">Cash</option>
+                            <option value="Photocopy">Photocopy</option>
+                            <option value="Lamination">Lamination</option>
+                            <option value="OnlineForm">Online Form</option>
+                            <option value="MoneyTransfer">Money Transfer</option>
+                            <option value="AEPS">AEPS</option>
+                            <option value="Resume">Resume</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700">विवरण</label>
+                        <input type="text" id="description" placeholder="कार्य का विवरण" class="w-full p-2 border rounded-lg focus:border-pink-400 focus:outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700">संख्या</label>
+                        <input type="number" id="quantity" class="w-full p-2 border rounded-lg focus:border-pink-400 focus:outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700">प्रति इकाई मूल्य</label>
+                        <input type="number" id="price" class="w-full p-2 border rounded-lg focus:border-pink-400 focus:outline-none" required>
+                    </div>
+                    <button type="submit" class="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition">
+                        जोड़ें
+                    </button>
+                </form>
+            </div>
+
+            <!-- Daily Summary -->
+            <div class="hello-kitty-card p-6">
+                <h2 class="text-xl font-bold text-pink-600 mb-4">
+                    <i class="bi bi-calendar-check"></i> दैनिक सारांश
+                </h2>
+                <div class="space-y-4">
+                    <div id="serviceSummaries">
+                        <!-- Service-wise summaries will be added here -->
+                    </div>
+                    <div class="border-t-2 border-pink-200 pt-4">
+                        <div class="flex justify-between items-center">
+                            <span>कुल आय:</span>
+                            <span id="totalEarnings" class="font-bold">₹0</span>
+                        </div>
+                    </div>
+                    <div class="loader mx-auto" id="loader"></div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="hello-kitty-card p-6 md:col-span-2">
+                <h2 class="text-xl font-bold text-pink-600 mb-4">
+                    <i class="bi bi-clock-history"></i> हाल के लेन-देन
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b-2 border-pink-200">
+                                <th class="text-left py-2">समय</th>
+                                <th class="text-left py-2">सेवा</th>
+                                <th class="text-left py-2">विवरण</th>
+                                <th class="text-left py-2">संख्या</th>
+                                <th class="text-left py-2">मूल्य</th>
+                                <th class="text-left py-2">कुल</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsList">
+                            <!-- Transactions will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let transactions = [];
+        const appSlug = 'shop-hisab-' + Math.random().toString(36).substr(2, 9);
+        
+        document.getElementById('entryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const loader = document.getElementById('loader');
+            loader.style.display = 'block';
+
+            const serviceType = document.getElementById('serviceType').value;
+            const description = document.getElementById('description').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const price = parseFloat(document.getElementById('price').value);
+            const total = quantity * price;
+            const shopName = document.getElementById('shopName').value;
+
+            const transaction = {
+                timestamp: new Date(),
+                serviceType,
+                description,
+                quantity,
+                price,
+                total,
+                shopName
+            };
+
+            try {
+                const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer dP4m0Sjx6LOwW3k0TsTEzizU2Jg1',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        appSlug,
+                        action: 'create',
+                        collection: 'transactions',
+                        data: transaction
+                    })
+                });
+
+                if (response.ok) {
+                    transactions.unshift(transaction);
+                    updateUI();
+                    e.target.reset();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('कृपया पुनः प्रयास करें');
+            }
+
+            loader.style.display = 'none';
+        });
+
+        function updateUI() {
+            // Update service summaries
+            const summaries = {};
+            transactions.forEach(t => {
+                if (!summaries[t.serviceType]) {
+                    summaries[t.serviceType] = {
+                        count: 0,
+                        total: 0
+                    };
+                }
+                summaries[t.serviceType].count += t.quantity;
+                summaries[t.serviceType].total += t.total;
+            });
+
+            const serviceSummariesHTML = Object.entries(summaries)
+                .map(([service, data]) => `
+                    <div class="flex justify-between items-center">
+                        <span>${service}:</span>
+                        <span class="font-bold">₹${data.total.toFixed(2)} (${data.count} इकाई)</span>
+                    </div>
+                `)
+                .join('');
+
+            document.getElementById('serviceSummaries').innerHTML = serviceSummariesHTML;
+
+            // Update total earnings
+            const totalEarnings = transactions.reduce((sum, t) => sum + t.total, 0);
+            document.getElementById('totalEarnings').textContent = `₹${totalEarnings.toFixed(2)}`;
+
+            // Update transactions list
+            const transactionsList = document.getElementById('transactionsList');
+            transactionsList.innerHTML = transactions
+                .slice(0, 10)
+                .map(t => `
+                    <tr class="border-b border-pink-100">
+                        <td class="py-2">${t.timestamp.toLocaleTimeString()}</td>
+                        <td class="py-2">${t.serviceType}</td>
+                        <td class="py-2">${t.description}</td>
+                        <td class="py-2">${t.quantity}</td>
+                        <td class="py-2">₹${t.price.toFixed(2)}</td>
+                        <td class="py-2">₹${t.total.toFixed(2)}</td>
+                    </tr>
+                `)
+                .join('');
+        }
+
+        async function loadTransactions() {
+            const loader = document.getElementById('loader');
+            loader.style.display = 'block';
+
+            try {
+                const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer dP4m0Sjx6LOwW3k0TsTEzizU2Jg1',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        appSlug,
+                        action: 'read',
+                        collection: 'transactions'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    transactions = data.result.read.map(t => ({
+                        ...t.data,
+                        timestamp: new Date(t.data.timestamp)
+                    }));
+                    updateUI();
+                    if (transactions.length > 0 && transactions[0].shopName) {
+                        document.getElementById('shopName').value = transactions[0].shopName;
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+
+            loader.style.display = 'none';
+        }
+
+        loadTransactions();
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
